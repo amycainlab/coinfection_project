@@ -1,0 +1,35 @@
+1.	Genome assembly 
+a.	Nanopore reads were quality filtered with Filtlong v 0.2.0
+
+Filtlong:
+filtlong -1 AcB_BALI_S11_R1_001.fastq -2 AcB_BALI_S11_R2_001.fastq --min_length 1000 --keep_percent 90 --target_bases 500000000 AcB_BALI.fastq | gzip > AcBfiltered.fa
+stq.gz
+
+filtlong -1 KIP_BALI_S12_R1_001.fastq.gz -2 KIP_BALI_S12_R2_001.fastq.gz --min_length 1000 --keep_percent 90 --target_bases 500000000 KIP_BALI.fastq.gz | gzip > KlPfiltered.fastq.gz
+
+b.	Quality filter Illumina reads using cutadapt v 1.18
+
+cutadapt --nextseq-trim=20 -o AcB_qfiltForward.fastq.gz AcB_BALI_S11_R1_001.fastq.gz
+cutadapt --nextseq-trim=20 -o AcB_qfiltReverse.fastq.gz AcB_BALI_S11_R2_001.fastq.gz
+
+cutadapt --nextseq-trim=20 -o KlP_qfiltForward.fastq.gz KIP_BALI_S12_R1_001.fastq.gz
+cutadapt --nextseq-trim=20 -o KlP_qfiltReverse.fastq.gz KIP_BALI_S12_R2_001.fastq.gz
+
+
+c.	Quailty trim adapters of Illumina reads using cutadapt v 1.18
+
+cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT -o AcB_trimForward.fastq -p AcB_trimReverse.fastq --minimum-length 36:36 AcB_qfiltForward.fastq.gz AcB_qfiltReverse.fastq.gz
+
+cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT -o KlP_trimForward.fastq -p KlP_trimReverse.fastq --minimum-length 36:36 KlP_qfiltForward.fastq.gz KlP_qfiltReverse.fastq.gz
+
+
+d.	Hybrid assembly performed using Unicycler v 0.4.9b
+unicycler -1 AcB_trimForward.fastq.gz -2 AcB_trimReverse.fastq.gz -l AcBfiltered.fastq.gz -o AcB_assembledCATUNInorm
+
+unicycler -1 KlP_trimForward.fastq.gz -2 KlP_trimReverse.fastq.gz -l KlPfiltered.fastq.gz -o KlP_assembledCATUNInorm
+
+
+2.	Annotation using Prokka v 1.14.6
+
+prokka --outdir AB6870155 --rfam --prefix AB6870155.fasta
+prokka --outdir KP6870155 --rfam --prefix KP6870155.fasta
