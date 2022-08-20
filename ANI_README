@@ -1,0 +1,5 @@
+./fastANI --ql ABfastaniGenomeList.txt --rl ABfastaniGenomeList.txt -o many2many_fastaniAcB.out --matrix &
+
+./fastANI --ql KPfastaniGenomeList.txt --rl KPfastaniGenomeList.txt -o many2many_fastaniKlP.out --matrix &
+
+#the output matrix gives a matrix in phylip format based on average nucleotide identity (ANI). These are percent identity values that need to be converted into distances by subtracting 1 from them. Use transform2distance.pl to fix them into distances 
