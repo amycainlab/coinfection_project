@@ -1,0 +1,85 @@
+#run cutadapt.sh 
+#!/bin/bash
+
+conda init bash
+
+source activate rnaseq  
+
+for i in ~/*_R1_001.fastq;
+do
+
+SAMPLE=$(echo ${i} | sed "s/_R1_\001\.fastq//") 
+echo ${SAMPLE}_R1_001.fastq ${SAMPLE}_R2_001.fastq
+
+cutadapt -b AGATCGGAAGAGCACACGTCTGAACTCCAGTCA -B AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT -m 20 -o ${SAMPLE}.r1trim.fastq -p ${SAMPLE}.r2trim.fastq ${SAMPLE}_R1_001.fastq ${SAMPLE}_R2_001.fastq
+
+done
+
+#run the commands to index files with star v 2.7.3a
+
+star --runMode genomeGenerate --runThreadN 4 --genomeFastaFiles AB6870155.fna --sjdbGTFfile AB6870155.gff --genomeDir AcB_index --genomeSAindexNbases 8
+
+star --runMode genomeGenerate --runThreadN 4 --genomeFastaFiles KP6870155.fna --sjdbGTFfile KP6870155.gff --genomeDir AcB_index --genomeSAindexNbases 8
+
+#run star.sh to map reads (Note: for KP6870155 change genomeDir to ~/KP_index)
+#!/bin/bash
+
+conda init bash
+
+source activate rnaseq  
+
+for i in *.r1trim.fastq;
+do
+
+SAMPLE=$(echo ${i} | sed "s/\.r1trim\.fastq//")
+echo ${SAMPLE}.r1trim.fastq ${SAMPLE}.r2trim.fastq
+
+
+star --runThreadN 20 --genomeDir ~/AcB_index --readFilesIn ${SAMPLE}.r1trim.fastq ${SAMPLE}.r2trim.fastq --alignIntronMax 1 --outFileNamePrefix ~/ ${SAMPLE}
+
+done
+
+#run samtools.sh to create and sort bam files and index sorted bam files 
+#!/bin/bash
+
+conda init bash
+
+source activate rnaseq  
+
+for i in ~/*.sam;
+do
+
+SAMPLE=$(echo ${i} | sed "s/\.sam//") 
+echo ${SAMPLE}.sam
+
+samtools view -Sb ${SAMPLE}.sam > ${SAMPLE}.bam
+
+done
+
+for i in ~/*.bam;
+
+do SAMPLE=$(echo ${i} | sed "s/\.bam//")
+echo ${SAMPLE}.bam
+
+
+samtools sort ${SAMPLE}.bam > ${SAMPLE}.sorted.bam
+
+done
+
+for i in ~/*.sorted.bam;
+
+do SAMPLE=$(echo ${i} | sed "s/\.sorted\.bam//")
+echo ${SAMPLE}.sorted.bam
+
+samtools index ${SAMPLE}.sorted.bam
+
+done
+
+#run gff2saf.pl to generate saf files from the gff files for each strain
+
+#run featureCounts commands to generate counts tables
+featureCounts -T 20 -p -s 0 -a AB6870155_genomic.saf -F SAF -o AcB_out.txt  ~/RE-A1_S16_mergedAligned.out.sorted.bam RE-A2_S17_mergedAligned.out.sorted.bam RE-A3_S18_mergedAligned.out.sorted.bam
+
+featureCounts -T 22 -p -s 0 -F SAF -a KP6870155_genomic.saf -o KlP_out.txt RE-K1_S19_mergedAligned.out.sorted.bam RE-K2_S20_mergedAligned.out.sorted.bam RE-K3_S21_mergedAligned.out.sorted.bam
+
+#run DESeq2 v 1.30.1 R package with ashr shrinkage estimator
